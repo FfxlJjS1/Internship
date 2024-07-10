@@ -1,0 +1,12 @@
+[submodule "oil_tanks_webapi"]
+	path = oil_tanks_webapi
+	url = https://github.com/FfxlJjS1/oil_tanks_webapi.git
+[submodule "oil_tanks_reactapp"]
+	path = oil_tanks_reactapp
+	url = https://github.com/FfxlJjS1/oil_tanks_reactapp.git
+[submodule "display_sheme_webapi"]
+	path = display_sheme_webapi
+	url = https://github.com/FfxlJjS1/display_sheme_webapi.git
+[submodule "display_sheme_reactapp"]
+	path = display_sheme_reactapp
+	url = https://github.com/FfxlJjS1/display_sheme_reactapp.git
