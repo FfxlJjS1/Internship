@@ -5,7 +5,68 @@ networks:
     driver: bridge
 
 services:
-  
+  zookeeper:
+   image: confluentinc/cp-zookeeper:latest
+   networks:
+      - net
+   environment:
+     ZOOKEEPER_CLIENT_PORT: 2181
+     ZOOKEEPER_TICK_TIME: 2000
+   ports:
+     - 22181:2181
+
+  kafka:
+    image: confluentinc/cp-kafka:latest
+    depends_on:
+      - zookeeper
+    networks:
+      - net
+    ports:
+      - '29092:29092'
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_LISTENERS: PLAINTEXT://0.0.0.0:9092,PLAINTEXT_HOST://0.0.0.0:29092
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092,PLAINTEXT_HOST://localhost:29092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+
+  init-kafka:
+    image: confluentinc/cp-kafka:latest
+    networks:
+      - net
+    depends_on:
+      - kafka
+    entrypoint: [ '/bin/sh', '-c' ]
+    command: |
+      "
+      # blocks until kafka is reachable
+      kafka-topics --bootstrap-server kafka:9092 --list
+
+      echo -e 'Creating kafka topics'
+      kafka-topics --bootstrap-server kafka:9092 --create --if-not-exists --topic microservice-actions --replication-factor 1 --partitions 1
+
+      echo -e 'Successfully created the following topics:'
+      kafka-topics --bootstrap-server kafka:9092 --list
+      "
+
+  kafka.consumer:
+    image: confluentinc/cp-kafka:latest
+    networks:
+      - net
+    depends_on:
+      - init-kafka
+    entrypoint: [ '/bin/sh', '-c' ]
+    command: |
+      "
+      # blocks until kafka is reachable
+      kafka-topics --bootstrap-server kafka:9092 --list
+
+      echo -e 'Consuming kafka microservice-actions'
+      kafka-console-consumer --topic microservice-actions --bootstrap-server kafka:9092 auto.offset.reset=earliest
+      "
+
   front.scheme:
     container_name: front.scheme
     build: ./display_sheme_reactapp
@@ -34,9 +95,12 @@ services:
       - net
     depends_on:
       - postgres.scheme
+      - kafka
     environment:
       - ASPNETCORE_ENVIRONMENT=Development
       - DATABASE_URL=jdbc:postgresql://postgres:12345@postgres:5432/db_collection
+      - KAFKA_SERVER=kafka:9092
+
   backend.tank:
     container_name: backend.tank
     build: ./oil_tanks_webapi
@@ -46,9 +110,11 @@ services:
       - net
     depends_on:
       - postgres.tank
+      - kafka
     environment:
       - ASPNETCORE_ENVIRONMENT=Development
       - DATABASE_URL=jdbc:postgresql://postgres:12345@postgres:5432/db_cistern
+      - KAFKA_SERVER=kafka:9092
   
   postgres.scheme:
     container_name: postgres.scheme
@@ -64,6 +130,7 @@ services:
     volumes:
       - postgres-data-scheme:/var/lib/postgresql/data
       - ./init_scheme.sql:/docker-entrypoint-initdb.d/data.sql
+
   postgres.tank:
     container_name: postgres.tank
     image: postgres:11-alpine
