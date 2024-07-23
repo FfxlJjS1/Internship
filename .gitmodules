@@ -10,3 +10,6 @@
 [submodule "display_sheme_reactapp"]
 	path = display_sheme_reactapp
 	url = https://github.com/FfxlJjS1/display_sheme_reactapp.git
+[submodule "internship_root_webapp"]
+	path = internship_root_webapp
+	url = https://github.com/FfxlJjS1/internship_root_webapp.git
